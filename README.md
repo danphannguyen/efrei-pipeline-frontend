@@ -23,3 +23,8 @@ Add Parameter → "String Parameter".
 - Repository URL: https://github.com/danphannguyen/efrei-pipeline-frontend.git
 - Branch specifier: */main
 - Script path: Jenkinsfile.deploy
+
+2) Variables d'environnement requises pour le job
+- `DEPLOY_HOST`: l'ip de votre machine de déploiement
+- `DEPLOY_USER`: Utilisateur SSH pour le déploiement
+**Obligatoire** — le pipeline échouera si non défini.

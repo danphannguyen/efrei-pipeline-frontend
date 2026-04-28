@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  web:
+    image: dvnpn/efrei-pipeline-web:latest
+    container_name: efrei-pipeline-web
+    ports:
+      - "80:80"
+    # Ajoute ici d'autres variables d'environnement si besoin

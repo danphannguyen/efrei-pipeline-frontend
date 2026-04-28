@@ -4,7 +4,7 @@ export default function App(){
   const [msg, setMsg] = useState('Loading...')
 
   useEffect(()=>{
-    const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+    const base = import.meta.env.BACKEND_URL || 'http://localhost:3001'
     const url = `${base}/api`
     fetch(url)
       .then(r=>r.json())

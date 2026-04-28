@@ -5,6 +5,7 @@ pipeline {
   parameters {
     string(name: 'DEPLOY_HOST', defaultValue: '', description: 'Adresse IP ou DNS de la VM cible')
     string(name: 'DEPLOY_USER', defaultValue: 'deployer', description: 'Utilisateur SSH pour le déploiement')
+    string(name: 'APP_NAME', defaultValue: 'efrei-pipeline-web', description: 'Nom de l\'application (utilisé pour le chemin de déploiement et le container)')
   }
 
   stages {
@@ -12,14 +13,33 @@ pipeline {
       steps {
         script {
           sshagent(['deploy-ssh-credential-id']) {
-            sh """
-              ssh -o StrictHostKeyChecking=no ${params.DEPLOY_USER}@${params.DEPLOY_HOST} '
-                docker pull dvnpn/efrei-pipeline-web:latest && \
-                docker stop efrei-pipeline-web || true && \
-                docker rm efrei-pipeline-web || true && \
-                docker run -d --name efrei-pipeline-web -p 80:80 dvnpn/efrei-pipeline-web:latest
-              '
-            """
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DH_USER', passwordVariable: 'DH_PWD')]) {
+              sh """
+                # Préparation du répertoire sur la VM
+                ssh -o StrictHostKeyChecking=no ${params.DEPLOY_USER}@${params.DEPLOY_HOST} 'mkdir -p /opt/${params.APP_NAME}'
+                
+                # Copie du docker-compose.yml
+                scp -o StrictHostKeyChecking=no docker-compose.yml ${params.DEPLOY_USER}@${params.DEPLOY_HOST}:/opt/${params.APP_NAME}/docker-compose.yml
+                
+                # Exécution des commandes Docker via SSH
+                ssh -o StrictHostKeyChecking=no ${params.DEPLOY_USER}@${params.DEPLOY_HOST} "
+                  # Authentification Docker Hub pour éviter le 'Rate Limit'
+                  echo '${DH_PWD}' | docker login -u '${DH_USER}' --password-stdin
+                  
+                  cd /opt/${params.APP_NAME} && \
+                  (docker rm -f ${params.APP_NAME} || true) && \
+                  
+                  if command -v docker-compose >/dev/null 2>&1; then \
+                    docker-compose pull && docker-compose up -d; \
+                  else \
+                    docker compose pull && docker compose up -d; \
+                  fi
+                  
+                  # Déconnexion pour nettoyer la session
+                  docker logout
+                "
+              """
+            }
           }
         }
       }
